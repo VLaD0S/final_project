@@ -83,6 +83,7 @@ class DataManager:
         self.label_count(self.labels)
         self.onehot_labels = self.one_hot(self.labels)
 
+
     # Getters
     def get_features(self):
         return self.features
@@ -99,6 +100,9 @@ class DataManager:
     def get_features_shape(self):
         return self.get_features().shape
 
+    def get_fshape(self):
+        return self.get_features_shape()[1:]
+
     def get_features_dtype(self):
         return self.get_features().dtype
 
@@ -114,3 +118,5 @@ class DataManager:
         else:
             return self.get_labels().shape
 
+    def get_lshape(self, onehot=False):
+        return self.get_labels_shape(onehot)[1:]

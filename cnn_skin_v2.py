@@ -6,7 +6,6 @@ training = "skin_data_all_training.npz"
 validation = "skin_data_all_validation.npz"
 test = "skin_data_all_test.npz"
 
-""""""
 training_data = Dm(training)
 validation_data = Dm(validation)
 test_data = Dm(test)
@@ -180,10 +179,6 @@ with graph.as_default():
     train_prediction = tf.nn.softmax(logits)
     test_prediction = tf.nn.softmax(model(test_features_placeholder))
     valid_prediction = tf.nn.softmax(model(validation_features_placeholder))
-
-
-features_placeholder = tf.placeholder(training_data.get_features().dtype, training_data.get_features().shape)
-features_labels = tf.placeholder()
 
 tf_training = tf.data.Dataset
 
