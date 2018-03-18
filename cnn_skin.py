@@ -75,7 +75,7 @@ def diy_one_hot(labels):
     """
     one_hot_labels = []
     for lb in range(len(labels)):
-        one_hot = np.zeros()
+        one_hot = np.zeros(num_labels)
         for i in range(num_labels):
 
             if label_list[i] == labels[lb]:
@@ -121,25 +121,21 @@ def calculate_steps(datasize, batchsize, epochs):
 
 
 
-
 """
 Defining a Graph - move to new file?
 """
 
 # hyper parameters
 # the standard deviation range from which the weights are randomly assigned.
-stddev_hyparam = 0.1
-learn_rate = 0.05
-batch_size = 10
-num_steps = 40
+stddev_hyparam = 0.5
+learn_rate = 0.1
+batch_size = 7
 
 placeholder_shape = (batch_size, data_shape[0], data_shape[1], data_shape[2])
-
 
 train_labels = diy_one_hot(train_labels)
 test_labels = diy_one_hot(test_labels)
 val_labels = diy_one_hot(val_labels)
-
 
 
 graph = tf.Graph()
@@ -284,10 +280,10 @@ with graph.as_default():
         conv_6 = tf.nn.relu(tf.matmul(pre_conv6, l6_w) + l6_b)
 
         # dropout 1
-        dropout_1 = tf.nn.dropout(conv_6, keep_prob=0.6, name="Dropout")
+        #dropout_1 = tf.nn.dropout(conv_6, keep_prob=0.6, name="Dropout")
 
         # layer 7 final
-        return tf.matmul(dropout_1, l7_w) + l7_depth
+        return tf.matmul(conv_6, l7_w) + l7_depth
 
 
     """
@@ -310,17 +306,17 @@ with graph.as_default():
 sess = tf.Session()
 sess.close()
 
-batch_size = 10
-epochs = 2
+epochs = 3
 num_steps = calculate_steps(train_features.shape[0], batch_size, epochs)
 
+num_steps = 100
 
 with tf.Session(graph=graph) as sess:
     tf.global_variables_initializer().run()
     counter = 0
     print("Initializing:")
     for s in range(num_steps):
-        tf.global_variables_initializer().run()
+        #tf.global_variables_initializer().run()
         offset = (s * batch_size) % train_labels.shape[0]
         batch_data = train_features[offset: (offset + batch_size), :, :, :]
         batch_labels = train_labels[offset: (offset + batch_size), :]
@@ -334,7 +330,7 @@ with tf.Session(graph=graph) as sess:
         _, l, predictions = sess.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
 
-        print('Minibatch loss at step %d: %f' % (s, l))
+        print('Minibatch loss at step :', s ," " , l)
         print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
         print('Validation accuracy: %.1f%%' % accuracy(valid_prediction.eval(), val_labels))
 

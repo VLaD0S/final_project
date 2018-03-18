@@ -1,4 +1,8 @@
+"""
+Data management class.
 
+
+"""
 
 import numpy as np
 
@@ -12,7 +16,7 @@ class DataManager:
         self.features = None
         self.labels = None
         self.onehot_labels = None
-        self.initiate(self)
+        self.initiate()
 
     @staticmethod
     def unpack_data(dataset):
@@ -58,7 +62,7 @@ class DataManager:
         if cls._label_names is not None:
             one_hot_label_list = []
             for lb in range(len(labels)):
-                num_labels = cls._label_names.size
+                num_labels = len(cls._label_names)
                 one_hot_label = np.zeros(num_labels)
 
                 for i in range(num_labels):
@@ -66,7 +70,7 @@ class DataManager:
                         one_hot_label[i] = 1
                         one_hot_label_list.append(one_hot_label)
 
-            return one_hot_label_list
+            return np.asarray(one_hot_label_list)
 
         else:
             return None
@@ -87,8 +91,26 @@ class DataManager:
         return self.labels
 
     def get_onehot_labels(self):
-        return self.one_hot_labels
+        return self.onehot_labels
 
     def get_label_names(self):
         return self._label_names
+
+    def get_features_shape(self):
+        return self.get_features().shape
+
+    def get_features_dtype(self):
+        return self.get_features().dtype
+
+    def get_labels_dtype(self, onehot=False):
+        if onehot:
+            return self.get_onehot_labels().dtype
+        else:
+            return self.get_labels().dtype
+
+    def get_labels_shape(self, onehot=False):
+        if onehot:
+            return self.get_onehot_labels().shape
+        else:
+            return self.get_labels().shape
 

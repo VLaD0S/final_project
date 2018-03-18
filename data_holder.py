@@ -31,11 +31,12 @@ class Data:
     def set_labelstats(self, label_stats):
         self.label_stats = label_stats
 
-    def append(self, data, label, path = "|nopath|" ):
+    def append(self, data, label, path="|nopath|"):
         """
         Use to append the data and its corresponding label to the arrays.
         :param data: data as multidimensional tuple
         :param label: label as string(or anything else)
+        :param path: path of the image/data component
         """
         if self.validate(data):
             self.data.append(data)
@@ -60,14 +61,14 @@ class Data:
                 print("Data and label datasets are not of the same size.")
                 return False
         else:
-            print("Required data shape:" + self.data_shape + ", Received: " + data.shape)
+            print("Required data shape:" + str(self.data_shape) + ", Received: " + data.shape)
             return False
 
     def double_check(self):
         for i in range(len(self.data)):
 
             if not self.data[i].shape == self.data_shape:
-                print("Error : image at " + self.paths[i] + " not of the size " + self.data_shape)
+                print("Error : image at " + self.paths[i] + " not of the size " + str(self.data_shape))
                 return False
         return True
 

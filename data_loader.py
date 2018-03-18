@@ -203,9 +203,10 @@ def main(data_root, test_size=0.10, validation_size=0.10):
         for image in os.listdir(label_path):
             image_path = os.path.join(label_path, image)
             image_opener = Image.open(image_path)
-            image_opener = image_opener.resize((28, 28), Image.ANTIALIAS)
-            image_data = np.asarray(image_opener, dtype="float32")
 
+            # ToDo: parameter to resize data/ move data resize to model?
+            image_opener = image_opener.resize((40, 40), Image.ANTIALIAS)
+            image_data = np.asarray(image_opener, dtype="float32")
 
             # checks if data is initiated with a particular data size. Uses the first image to define
             if not data_list.check_initiate():
