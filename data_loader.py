@@ -105,7 +105,7 @@ def split_save(data_root, data_list, test_size, validation_size):
     test_data.initiate_shape(shape)
     validation_data.initiate_shape(shape)
 
-    # ensure that the test data and the valdation data are of viable proportions
+    # ensure that the test data and the validation data are of viable proportions
     validate_sets(test_size, validation_size)
 
     # used to calculate where the label changes in the data.
@@ -122,7 +122,7 @@ def split_save(data_root, data_list, test_size, validation_size):
 
         # calculate the number of test and validation elements
         label_test_size = int(label_size * test_size)
-        label_validation_size = int(label_size * test_size)
+        label_validation_size = int(label_size * validation_size)
 
         # For each label, a proportion of the items are selected to be part of the test and validation sets.
         for item in list(range(len(label_keys))):
@@ -130,11 +130,11 @@ def split_save(data_root, data_list, test_size, validation_size):
             # gets an "id" of an element within the label
             elem_id = label_keys[item]
 
-            if label_test_size > 0:
+            if label_test_size >= 0:
                 test_data.append(all_features[elem_id], all_labels[elem_id], all_paths[elem_id])
                 label_test_size = label_test_size - 1
 
-            elif label_validation_size > 0:
+            elif label_validation_size >= 0:
                 validation_data.append(all_features[elem_id], all_labels[elem_id], all_paths[elem_id])
                 label_validation_size = label_validation_size - 1
 
@@ -162,7 +162,7 @@ def validate_sets(test_size, validation_size):
     validation = True
     error = "Ensure that the selected sizes are between 0 and 1, and add up to less than 1."
 
-    if test_size < 0 or validation < 0:
+    if test_size <= 0 or validation <= 0:
         validation = False
 
     if (test_size + validation_size) >= 1:
@@ -205,7 +205,7 @@ def main(data_root, test_size=0.10, validation_size=0.10):
             image_opener = Image.open(image_path)
 
             # ToDo: parameter to resize data/ move data resize to model?
-            image_opener = image_opener.resize((40, 40), Image.ANTIALIAS)
+            image_opener = image_opener.resize((160, 160), Image.ANTIALIAS)
             image_data = np.asarray(image_opener, dtype="float32")
 
             # checks if data is initiated with a particular data size. Uses the first image to define
@@ -236,9 +236,12 @@ if __name__ == '__main__':
 
     if args.data:
 
-        if args.testsize and args.validsize and validate_sets(args.testsize, args.validsize):
+        if (args.testsize >= float(0)) and (args.validsize >= float(0)):
 
-            main(args.data, args.testsize, args.validsize)
+            if validate_sets(args.testsize, args.validsize):
+                main(args.data, args.testsize, args.validsize)
+            else:
+                print("Failed to validate the sets")
         else:
             print("Please specify a valid testsize and validsize combination.")
     else:

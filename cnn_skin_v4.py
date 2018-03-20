@@ -2,13 +2,14 @@ from data_unpacker import DataManager as Dm
 import tensorflow as tf
 import numpy as np
 
-#<editor-fold desc="Loading the data">
+# <editor-fold desc="Loading the data">
 _training = Dm("skin_data_all_training.npz")
 _validation = Dm("skin_data_all_validation.npz")
 _testing = Dm("skin_data_all_test.npz")
-#</editor-fold>
+# </editor-fold>
 
-#<editor-fold desc="Helper functions">
+
+# <editor-fold desc="Helper functions">
 # function for managing prediction accuracy
 def accuracy(prediction, labels):
     """
@@ -26,7 +27,7 @@ def accuracy(prediction, labels):
 # function for calculating a reasonable number of steps
 def calculate_steps(datasize, batchsize, epochs):
     """
-    Determines an approrpiate number of steps
+    Determines an appropriate number of steps
     :param datasize: Size of the dataset
     :param batchsize: Batches
     :param epochs: Number of times dataset will be retrained.
@@ -50,24 +51,24 @@ def calculate_steps(datasize, batchsize, epochs):
 def decode_onehot(label):
     # decodes onehot tensor to a label.
     if len(label) == len(_training.get_label_names()):
-        returned = False
         for hot in range(len(label)):
             if label[hot] == 1:
-                returned = True
                 return _training.get_label_names()[hot]
-        if not returned:
-            print("No label returned. Faulty one_hot encoded label")
+
+        print("No label returned. Faulty one_hot encoded label")
+        return
     else:
         print("Error, size of tensor isn't equal to the number of labels.")
         return
-#</editor-fold>
+# </editor-fold>
+
 
 # <editor-fold desc="Hyper Parameters and Data Variables">
 # Hyper Parameters
 stddev_hyparam = 0.05
-learn_rate = 0.0007
+learn_rate = 0.001
 batch_size = 75
-num_epochs = 300
+num_epochs = 500
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -76,7 +77,7 @@ feature_shape = _training.get_fshape()
 label_shape = _training.get_lshape(True)
 data_depth = _training.get_fshape()[2]
 
-#</editor-fold>
+# </editor-fold>
 
 # Constructing the neural network model
 
@@ -96,7 +97,7 @@ with graph.as_default():
     _lbatch = [batch_size]
     _fbatch.extend(list(_training.get_fshape()))
     _lbatch.extend(list(_training.get_lshape(True)))
-    #</editor-fold>
+    # </editor-fold>
 
     _features = tf.placeholder(_training.get_features_dtype(), shape=_fbatch)
     _labels = tf.placeholder(_training.get_labels_dtype(True), shape=_lbatch)
@@ -104,9 +105,7 @@ with graph.as_default():
     _test_features = tf.constant(_testing.get_features())
     _valid_features = tf.constant(_validation.get_features())
 
-
-
-    #<editor-fold desc="wrappers for the convolution and maxpool functions">
+    # <editor-fold desc="wrappers for the convolution and maxpool functions">
     def conv(tensor, weight, bias, stride=1, pad="SAME"):
         """
         Wrapper function for the convolution operation.
@@ -139,7 +138,7 @@ with graph.as_default():
                               ksize=[1, ksz, ksz, 1],
                               strides=[1, stride, stride, 1],
                               padding=pad)
-    #</editor-fold>
+    # </editor-fold>
 
     # <editor-fold desc="Weights and Biases">
     # weights and biases
@@ -225,6 +224,8 @@ sess.close()
 
 with tf.Session(graph=graph) as sess:
     tf.global_variables_initializer().run()
+    max_validation = 0
+    max_test = 0
     for step in range(num_steps):
         offset = (step * batch_size) % (_training.get_features_shape()[0] - batch_size)
         batch_data = _training.get_features()[offset:(offset + batch_size), :, :, :]
@@ -234,12 +235,36 @@ with tf.Session(graph=graph) as sess:
         _, l, predictions = sess.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
 
-        if (step % 50) == 0:
-            print("Loss at step: ", step, ": ",float(l))
-            print("Batch accuracy: ", accuracy(predictions, batch_labels), "%")
-            print("Validation accuracy: ", accuracy(valid_prediction.eval(), _validation.get_onehot_labels()))
+        batch_accuracy = accuracy(predictions, batch_labels)
+        validation_accuracy = accuracy(valid_prediction.eval(), _validation.get_onehot_labels())
+        test_accuracy = accuracy(test_prediction.eval(), _testing.get_onehot_labels())
+
+        #
+        if max_validation < validation_accuracy:
+            max_validation = validation_accuracy
+            print("Step:", step)
+            print("Loss:", float(l))
+            print("Batch accuracy:", round(batch_accuracy, 3), "%")
+            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
 
+        #
+        if max_test < test_accuracy:
+            max_test = test_accuracy
+            print("Step:", step)
+            print("Loss:", float(l))
+            print("Batch accuracy:", round(batch_accuracy, 3), "%")
+            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Test data accuracy:", round(test_accuracy, 3), "%")
+            print(" ")
+
+    print("Number of steps: ", num_steps)
     print(" -- END --  ")
-    print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
+    # print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
+    print("")
+    writer = tf.summary.FileWriter('.')
+    writer.add_graph(tf.get_default_graph())
     sess.close()
+
+    
