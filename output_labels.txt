@@ -1,5 +1,0 @@
-normal data
-mole data
-psoriasis data
-melanoma data
-acne data
