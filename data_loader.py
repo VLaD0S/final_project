@@ -243,7 +243,7 @@ if __name__ == '__main__':
 
                 if validate_sets(args.test_size, args.valid_size):
 
-                    if args.dest:
+                    if args.dest_folder:
                         main(args.data, args.test_size, args.valid_size, args.dest_folder)
                     else:
                         print("no save directory specified")
