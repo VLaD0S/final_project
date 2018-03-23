@@ -1,13 +1,30 @@
 from data_management.data_unpacker import DataManager as Dm
 import tensorflow as tf
 import numpy as np
-
+import os
 
 # <editor-fold desc="Loading the data">
-_training = Dm("skin_data_all_training.npz")
-_validation = Dm("skin_data_all_validation.npz")
-_testing = Dm("skin_data_all_test.npz")
+data_root = "data"
+training_data_path = ""
+validation_data_path = ""
+testing_data_path = ""
+
+data_files = os.listdir(data_root)
+print(data_files)
+for data_file in data_files:
+    if "train" in data_file:
+        training_data_path = os.path.join(data_root, data_file)
+    if "test" in data_file:
+        testing_data_path = os.path.join(data_root, data_file)
+    if "valid" in data_file:
+        validation_data_path = os.path.join(data_root, data_file)
+
+
+_training = Dm(training_data_path)
+_validation = Dm(validation_data_path)
+_testing = Dm(testing_data_path)
 # </editor-fold>
+
 
 
 # <editor-fold desc="Helper functions">
