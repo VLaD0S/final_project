@@ -1,6 +1,7 @@
 """
 ToDo: Tests, maybe tweak arguments so they look nicer.
 ToDo: Add a function which specifies the image shape?
+ToDo: Add save directory
 -- "it ain't broke...but lets fix it anyway " --
 """
 
@@ -10,25 +11,6 @@ import random
 from PIL import Image
 import numpy as np
 from data_holder import Data
-
-# argument parser
-
-parser = argparse.ArgumentParser(description='Format data for training and it into Training, Test and Validation sets',
-                                 epilog=" -- End -- ",
-                                 usage="python data_loader.py <path/to/data_source> <testsize> <validsize>")
-
-parser.add_argument("data",
-                    help="Main data folder. The sub-folders of this folder are the labels")
-parser.add_argument("testsize", type=float,
-                    help="Proportion of the data to be allocated for testing,"
-                         "as float between 0 and 1."
-                         " Default it 0.10 (10%)")
-parser.add_argument("validsize", type=float,
-                    help="Proportion of the data to be allocated for validation,"
-                         "as float between 0 and 1."
-                         " Default is 0.10 (10%)")
-
-args = parser.parse_args()
 
 
 def shuffler(data_list):
@@ -56,9 +38,8 @@ def shuffler(data_list):
         return False
 
 
-def pack_and_save(data_root, data_list):
+def pack_and_save(data_root, data_list, directory):
     filename = data_root.lower() + ".npz"
-
     if data_list.double_check():
 
         data = shuffler(data_list)
@@ -66,7 +47,12 @@ def pack_and_save(data_root, data_list):
         features = data.get_data()
         labels = data.get_labels()
 
+        if directory not in os.listdir("."):
+            os.makedirs(directory)
+
+        filename = os.path.join(directory, filename)
         np.savez(filename, features=features, labels=labels)
+
         print("Saved data as " + filename + ", of size " + str(data.get_size()) + ".")
 
     else:
@@ -74,13 +60,15 @@ def pack_and_save(data_root, data_list):
         return False
 
 
-def split_save(data_root, data_list, test_size, validation_size):
+def split_save(data_root, data_list, test_size, validation_size, directory):
     """
     Splits the original dataset into Training data, Test data and Validation data.
+    Saves the data at the end.
     :param, data_root: data root name, to be passed on.
     :param data_list: original dataset
     :param test_size: proportion of the data for the Test dataset
     :param validation_size: proportion of the data for the Validation dataset
+    :param directory: directory where data will be saved
     :return:
     """
 
@@ -147,9 +135,9 @@ def split_save(data_root, data_list, test_size, validation_size):
         # - logging
         print("Done label "+labels[no])
 
-    pack_and_save(str(data_root + "_test"), test_data)
-    pack_and_save(str(data_root + "_validation"), validation_data)
-    pack_and_save(str(data_root + "_training"), training_data)
+    pack_and_save(str(data_root + "_test"), test_data, directory)
+    pack_and_save(str(data_root + "_validation"), validation_data, directory)
+    pack_and_save(str(data_root + "_training"), training_data, directory)
 
 
 def validate_sets(test_size, validation_size):
@@ -174,13 +162,14 @@ def validate_sets(test_size, validation_size):
     return validation
 
 
-def main(data_root, test_size=0.10, validation_size=0.10):
+def main(data_root, test_size, validation_size, directory):
     """
     > Goes through the data folder, loading a Data() object with the image data and label.
     > Exports a file called <data_root>.npz containing all the data.
     :param data_root: path to main data folder
     :param test_size: proportion of data allocated to the test set
     :param validation_size: proportion of data allocated to the validation set
+    :param directory: directory where data will be saved
     """
 
     data_list = Data()
@@ -228,22 +217,42 @@ def main(data_root, test_size=0.10, validation_size=0.10):
     # passes a list of labels and their corresponding end index in the list.
     data_list.set_labelstats(label_stats)
 
-    split_save(data_root, data_list, test_size, validation_size)
-    # pack_and_save(data_root, data_list)
+    split_save(data_root, data_list, test_size, validation_size, directory)
 
 
 if __name__ == '__main__':
 
+    # argument parser
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", help="Main data folder. The sub-folders of this folder are the labels")
+    parser.add_argument("--test_size", type=float, help="Proportion of the data to be allocated for testing,"
+                        "as float between 0 and 1.")
+    parser.add_argument("--valid_size", type=float,
+                        help="Proportion of the data to be allocated for validation,"
+                             "as float between 0 and 1.")
+    parser.add_argument("--dest_folder", help="Directory where models will be saved.")
+
+    args = parser.parse_args()
+
     if args.data:
 
-        if (args.testsize >= float(0)) and (args.validsize >= float(0)):
+        if args.test_size and args.valid_size:
 
-            if validate_sets(args.testsize, args.validsize):
-                main(args.data, args.testsize, args.validsize)
+            if (args.test_size >= float(0)) and (args.valid_size >= float(0)):
+
+                if validate_sets(args.test_size, args.valid_size):
+
+                    if args.dest:
+                        main(args.data, args.test_size, args.valid_size, args.dest_folder)
+                    else:
+                        print("no save directory specified")
+                else:
+                    print("Failed to validate the sets")
             else:
-                print("Failed to validate the sets")
+                print("Please specify a valid testsize and validsize combination.")
         else:
-            print("Please specify a valid testsize and validsize combination.")
+            print("Please specify a test and validation proportion.")
     else:
 
         print("Please specify a data source.")
