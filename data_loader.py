@@ -10,7 +10,7 @@ import argparse
 import random
 from PIL import Image
 import numpy as np
-from data_holder import Data
+from data_management.data_holder import Data
 
 
 def shuffler(data_list):
