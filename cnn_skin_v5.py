@@ -2,6 +2,7 @@ from data_unpacker import DataManager as Dm
 import tensorflow as tf
 import numpy as np
 
+
 # <editor-fold desc="Loading the data">
 _training = Dm("skin_data_all_training.npz")
 _validation = Dm("skin_data_all_validation.npz")
@@ -16,7 +17,7 @@ def accuracy(prediction, labels):
     logging?
     :param prediction:
     :param labels:
-    :return:
+    :return: percentage
     """
     pred = np.argmax(prediction, 1)
     label = np.argmax(labels, 1)
@@ -65,10 +66,10 @@ def decode_onehot(label):
 
 # <editor-fold desc="Hyper Parameters and Data Variables">
 # Hyper Parameters
-stddev_hyparam = 0.05
-learn_rate = 0.001
-batch_size = 75
-num_epochs = 500
+stddev_hyparam = 0.04
+learn_rate = 0.0045
+batch_size = 76
+num_epochs = 1000
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -144,71 +145,93 @@ with graph.as_default():
 
     # <editor-fold desc="Weights and Biases">
     # weights and biases
-    # l1 :: 40 x 40 x 3 :: 20 x 20 x 16 :: S
+    # l1 :: 160 x 160 x 3 :: 160 x 160 x 16 :: S
     l1_depth = 16
-    l1_w = tf.Variable(tf.truncated_normal([5, 5, data_depth, l1_depth], stddev=stddev_hyparam))
+    l1_w = tf.Variable(tf.truncated_normal([3, 3, data_depth, l1_depth], stddev=stddev_hyparam))
     l1_b = tf.Variable(tf.zeros(l1_depth))
 
-    # l2 :: 20 x 20 x 16 :: 18 x 18 x 16 :: V
+    # max_pool :: 160 x 160 x 16 :: 80 x 80 x 16
+
+    # l2 :: 80 x 80 x 16 :: 80 x 80 x 32 :: S
     l2_depth = 16
     l2_w = tf.Variable(tf.truncated_normal([3, 3, l1_depth, l2_depth], stddev=stddev_hyparam))
     l2_b = tf.Variable(tf.constant(1.0, shape=[l2_depth]))
 
-    # l3 :: 18 x 18 x 16 :: 16 x 16 x 32 :: V
+    # max_pool :: 80 x 80 x 32 :: 40 x 40 x 32
+
+    # l3 :: 40 x 40 x 32 :: 40 x 40 x 64 :: S
     l3_depth = 32
     l3_w = tf.Variable(tf.truncated_normal([3, 3, l2_depth, l3_depth], stddev=stddev_hyparam))
-    l3_b = tf.Variable(tf.constant(1.0, shape=[l3_depth]))
+    l3_b = tf.Variable(tf.constant(2.0, shape=[l3_depth]))
 
-    # mx1 :: 16 x 16 x 32 :: 8 x 8 x 32 :: S
+    # max_pool :: 40 x 40 x 64 :: 20 x 20 x 64
 
-    # l4 :: 8 x 8 x 32 :: 6 x 6 x 64 :: V
-    l4_depth = 64
-    l4_w = tf.Variable(tf.truncated_normal([3, 3, l3_depth, l4_depth], stddev=stddev_hyparam))
+    # l4 :: 20 x 20 x 64 :: 16 x 16 x 128 :: V
+    l4_depth = 32
+    l4_w = tf.Variable(tf.truncated_normal([5, 5, l3_depth, l4_depth], stddev=stddev_hyparam))
     l4_b = tf.Variable(tf.constant(1.0, shape=[l4_depth]))
 
-    # mx2 :: 6 x 6 x 64 :: 3 x 3 x 64 :: S
+    # l5 :: 16 x 16 x 128 :: 10 x 10 x 256 :: V
+    l5_depth = 32
+    l5_w = tf.Variable(tf.truncated_normal([7, 7, l4_depth, l5_depth], stddev=stddev_hyparam))
+    l5_b = tf.Variable(tf.constant(2.0, shape=[l5_depth]))
 
-    # l5 :: 3 x 3 x 64 :: 1 x 1 x 128 :: V
-    l5_depth = 128
-    l5_w = tf.Variable(tf.truncated_normal([3, 3, l4_depth, l5_depth], stddev=stddev_hyparam))
-    l5_b = tf.Variable(tf.constant(1.0, shape=[l5_depth]))
+    # max_pool :: 10 x 10 x 256 :: 5 x 5 x 256 :: S
 
-    # final :: 1 x 1 x 128 :: 1 x 1 x 5 (number of labels)
-    l6_depth = num_labels
-    l6_w = tf.Variable(tf.truncated_normal([l5_depth, l6_depth], stddev=stddev_hyparam))
+    # l6 :: 5 x 5 x 256 :: 1 x 1 x 512 :: V
+    l6_depth = 128
+    l6_w = tf.Variable(tf.truncated_normal([5, 5, l5_depth, l6_depth], stddev=stddev_hyparam))
     l6_b = tf.Variable(tf.constant(1.0, shape=[l6_depth]))
 
+    # l7 :: 1 x 1 x 512 :: 1 x 1 x 5 :: S
+    l7_depth = num_labels
+    l7_w = tf.Variable(tf.truncated_normal([l6_depth, l7_depth], stddev=stddev_hyparam))
+    l7_b = tf.Variable(tf.constant(2.0, shape=[l7_depth]))
     # </editor-fold>
 
     def model(data):
 
-        # l1 40-20
-        convolution = conv(data, l1_w, l1_b, stride=2)
+        # l1 160-160 3-16
+        convolution = conv(data, l1_w, l1_b)
 
-        # l2 20-18
-        convolution = conv(convolution, l2_w, l2_b, pad="VALID")
-
-        # l3 18-16
-        convolution = conv(convolution, l3_w, l3_b, pad="VALID")
-
-        # maxpool 16-8
+        # mx 160-80 16-16
         mxpool = maxpool(convolution)
 
-        # l4 8-6
+        # l2 80-80 16-32
+        convolution = conv(mxpool, l2_w, l2_b)
+
+        # mx 80-40 32-32
+        mxpool = maxpool(convolution)
+
+        # l3 40-40 32-64
+        convolution = conv(mxpool, l3_w, l3_b)
+
+        # mx 40-20 64-64
+        mxpool = maxpool(convolution)
+
+        # l4 20-16 64-128
         convolution = conv(mxpool, l4_w, l4_b, pad="VALID")
 
-        # maxpool 6-3
+        # l5 16-10 128-256
+        convolution = conv(convolution, l5_w, l5_b, pad="VALID")
+
+        # mx 10-5 256-256
         mxpool = maxpool(convolution)
 
-        # l5 3-1 - 128
-        convolution = conv(mxpool, l5_w, l5_b, pad="VALID")
+        # l6 5-1 256-512
+        convolution = conv(mxpool, l6_w, l6_b, pad="VALID")
 
+        dropout = tf.nn.dropout(convolution, keep_prob=0.5)
         convolution_shape = convolution.get_shape()
-        pre_final = tf.reshape(convolution,
+
+        pre_final = tf.reshape(dropout,
                                [convolution_shape[0], convolution_shape[3]])
 
-        return tf.matmul(pre_final, l6_w) + l6_b
+        final = tf.matmul(pre_final, l7_w) + l7_b
 
+        return final
+
+    # <editor-fold desc="last graph computation">
     # getting the loss
     logits = model(_features)
     label_logits = tf.nn.softmax_cross_entropy_with_logits_v2(labels=_labels, logits=logits)
@@ -220,6 +243,7 @@ with graph.as_default():
     train_prediction = tf.nn.softmax(logits)
     test_prediction = tf.nn.softmax(model(_test_features))
     valid_prediction = tf.nn.softmax(model(_valid_features))
+    # </editor-fold>
 
 sess = tf.Session("")
 sess.close()
@@ -228,6 +252,8 @@ with tf.Session(graph=graph) as sess:
     tf.global_variables_initializer().run()
     max_validation = 0
     max_test = 0
+
+    print("Total steps:", num_steps)
     for step in range(num_steps):
         offset = (step * batch_size) % (_training.get_features_shape()[0] - batch_size)
         batch_data = _training.get_features()[offset:(offset + batch_size), :, :, :]
@@ -240,32 +266,46 @@ with tf.Session(graph=graph) as sess:
         batch_accuracy = accuracy(predictions, batch_labels)
         validation_accuracy = accuracy(valid_prediction.eval(), _validation.get_onehot_labels())
         test_accuracy = accuracy(test_prediction.eval(), _testing.get_onehot_labels())
-
-        #
+        """
+        print("Step:", step)
+        print("Loss:", float(l))
+        print("Batch accuracy:", batch_accuracy, "%")
+        print("Validation accuracy:", validation_accuracy, "%")
+        print("Test accuracy:", test_accuracy)
+        print(" ")
+        """
+        # <editor-fold desc="Printing information whenever there's an increase in the test/validation sets">
         if max_validation < validation_accuracy:
             max_validation = validation_accuracy
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
-            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
             print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
 
-        #
         if max_test < test_accuracy:
             max_test = test_accuracy
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
-            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
             print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
 
+        if (step % 25) == 0:
+            print("Step:", step)
+            print("Loss:", float(l))
+            print("Batch accuracy:", round(batch_accuracy, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
+            print("Test data accuracy:", round(test_accuracy, 3), "%")
+            print(" ")
+        # </editor-fold>
+
     print("Number of steps: ", num_steps)
+    print(accuracy(test_prediction.eval(), _testing.get_onehot_labels()))
     print(" -- END --  ")
     # print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
     print("")
-    writer = tf.summary.FileWriter('.')
-    writer.add_graph(tf.get_default_graph())
-    sess.close()
 
+    sess.close()
