@@ -1,4 +1,5 @@
-
+Data used to train these models:
+Skin_Data.tar.gz
 
 Links for trained models:
 
