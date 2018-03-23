@@ -66,10 +66,10 @@ def decode_onehot(label):
 
 # <editor-fold desc="Hyper Parameters and Data Variables">
 # Hyper Parameters
-stddev_hyparam = 0.05
-learn_rate = 0.005
-batch_size = 75
-num_epochs = 500
+stddev_hyparam = 0.04
+learn_rate = 0.0045
+batch_size = 76
+num_epochs = 1000
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -146,7 +146,7 @@ with graph.as_default():
     # <editor-fold desc="Weights and Biases">
     # weights and biases
     # l1 :: 160 x 160 x 3 :: 160 x 160 x 16 :: S
-    l1_depth = 8
+    l1_depth = 16
     l1_w = tf.Variable(tf.truncated_normal([3, 3, data_depth, l1_depth], stddev=stddev_hyparam))
     l1_b = tf.Variable(tf.zeros(l1_depth))
 
@@ -155,12 +155,12 @@ with graph.as_default():
     # l2 :: 80 x 80 x 16 :: 80 x 80 x 32 :: S
     l2_depth = 16
     l2_w = tf.Variable(tf.truncated_normal([3, 3, l1_depth, l2_depth], stddev=stddev_hyparam))
-    l2_b = tf.Variable(tf.constant(2.0, shape=[l2_depth]))
+    l2_b = tf.Variable(tf.constant(1.0, shape=[l2_depth]))
 
     # max_pool :: 80 x 80 x 32 :: 40 x 40 x 32
 
     # l3 :: 40 x 40 x 32 :: 40 x 40 x 64 :: S
-    l3_depth = 16
+    l3_depth = 32
     l3_w = tf.Variable(tf.truncated_normal([3, 3, l2_depth, l3_depth], stddev=stddev_hyparam))
     l3_b = tf.Variable(tf.constant(2.0, shape=[l3_depth]))
 
@@ -169,10 +169,10 @@ with graph.as_default():
     # l4 :: 20 x 20 x 64 :: 16 x 16 x 128 :: V
     l4_depth = 32
     l4_w = tf.Variable(tf.truncated_normal([5, 5, l3_depth, l4_depth], stddev=stddev_hyparam))
-    l4_b = tf.Variable(tf.constant(2.0, shape=[l4_depth]))
+    l4_b = tf.Variable(tf.constant(1.0, shape=[l4_depth]))
 
     # l5 :: 16 x 16 x 128 :: 10 x 10 x 256 :: V
-    l5_depth = 64
+    l5_depth = 32
     l5_w = tf.Variable(tf.truncated_normal([7, 7, l4_depth, l5_depth], stddev=stddev_hyparam))
     l5_b = tf.Variable(tf.constant(2.0, shape=[l5_depth]))
 
@@ -181,7 +181,7 @@ with graph.as_default():
     # l6 :: 5 x 5 x 256 :: 1 x 1 x 512 :: V
     l6_depth = 128
     l6_w = tf.Variable(tf.truncated_normal([5, 5, l5_depth, l6_depth], stddev=stddev_hyparam))
-    l6_b = tf.Variable(tf.constant(2.0, shape=[l6_depth]))
+    l6_b = tf.Variable(tf.constant(1.0, shape=[l6_depth]))
 
     # l7 :: 1 x 1 x 512 :: 1 x 1 x 5 :: S
     l7_depth = num_labels
@@ -280,7 +280,7 @@ with tf.Session(graph=graph) as sess:
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
-            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
             print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
 
@@ -289,7 +289,15 @@ with tf.Session(graph=graph) as sess:
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
-            print("Validation accuracy:", round(max_validation, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
+            print("Test data accuracy:", round(test_accuracy, 3), "%")
+            print(" ")
+
+        if (step % 25) == 0:
+            print("Step:", step)
+            print("Loss:", float(l))
+            print("Batch accuracy:", round(batch_accuracy, 3), "%")
+            print("Validation accuracy:", round(validation_accuracy, 3), "%")
             print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
         # </editor-fold>
