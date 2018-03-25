@@ -9,8 +9,6 @@ import tensorflow as tf
 import os
 import argparse
 
-model_name = "cnn_model_2"
-
 
 def create_graph(name):
     model_name = name
