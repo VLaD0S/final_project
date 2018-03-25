@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
     # since the inception model will always be used in this way :
     input_name = "import/" + "Mul"
-    output_name = "import/" + "Final"
+    output_name = "import/" + "final_result"
 
     input_operation = graph.get_operation_by_name(input_name)
     output_operation = graph.get_operation_by_name(output_name)

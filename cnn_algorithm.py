@@ -1,16 +1,31 @@
-from data_management.data_unpacker import DataManager as Dm
-import tensorflow as tf
-import numpy as np
+"""
+Template model file
+"""
+
 import os
+import numpy as np
+from image_handling.data_manager import DataManager as Dm
+import tensorflow as tf
+import argparse
+
+
+# name of the model. To change.
+
+model_name = "cnn_model_2"
 
 # <editor-fold desc="Loading the data">
+"""
+Section of the code responsible for looking for the data in the data folder.
+"""
 data_root = "data"
 training_data_path = ""
 validation_data_path = ""
 testing_data_path = ""
 
-data_files = os.listdir(data_root)
-print(data_files)
+data_files = os.listdir(os.path.join(os.getcwd(), data_root))
+data_files_string = " ".join(str(x) for x in data_files)
+
+print("Found datasets: " + str(data_files))
 for data_file in data_files:
     if "train" in data_file:
         training_data_path = os.path.join(data_root, data_file)
@@ -26,15 +41,14 @@ _testing = Dm(testing_data_path)
 # </editor-fold>
 
 
-
 # <editor-fold desc="Helper functions">
 # function for managing prediction accuracy
 def accuracy(prediction, labels):
     """
-    logging?
-    :param prediction:
-    :param labels:
-    :return: percentage
+    Checks the accuracy of the label predictions against the actual labels
+    :param prediction: predictions as one_hot encoded tensor
+    :param labels: labels as one_hot encoded tensor
+    :return: float, resembling the percentage of the accuracy
     """
     pred = np.argmax(prediction, 1)
     label = np.argmax(labels, 1)
@@ -65,7 +79,8 @@ def calculate_steps(datasize, batchsize, epochs):
         return steps
 
 
-# function for mapping a one_hot encoded label onto a label name.
+# NOT USED
+# function for mapping a one_hot encoded label onto a label name.=
 def decode_onehot(label):
     # decodes onehot tensor to a label.
     if len(label) == len(_training.get_label_names()):
@@ -86,7 +101,7 @@ def decode_onehot(label):
 stddev_hyparam = 0.04
 learn_rate = 0.0045
 batch_size = 76
-num_epochs = 1000
+num_epochs = 2
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -97,12 +112,11 @@ data_depth = _training.get_fshape()[2]
 
 # </editor-fold>
 
-# Constructing the neural network model
+# Constructing the neural network model inside the graph.
+train_graph = tf.Graph()
+with train_graph.as_default():
 
-graph = tf.Graph()
-with graph.as_default():
-
-    # <editor-fold desc="Aiding parameter creation">
+    # <editor-fold desc="Placeholders and constants">
     """
     Creating placeholders for the graph computations:
     _features will be of the shape: [ batch size, x , y , z ]
@@ -111,16 +125,11 @@ with graph.as_default():
     _labels will be of the shape: [ batch size, h]
         - h represents the length of the one_hot list
     """
-    _fbatch = [batch_size]
-    _lbatch = [batch_size]
-    _fbatch.extend(list(_training.get_fshape()))
-    _lbatch.extend(list(_training.get_lshape(True)))
-    # </editor-fold>
 
-    # <editor-fold desc="Placeholders">
-    _features = tf.placeholder(_training.get_features_dtype(), shape=_fbatch)
-    _labels = tf.placeholder(_training.get_labels_dtype(True), shape=_lbatch)
+    _features = tf.placeholder(_training.get_features_dtype(), name="Mul")
+    _labels = tf.placeholder(_training.get_labels_dtype(True), name="lab")
 
+    # used for determining model accuracy
     _test_features = tf.constant(_testing.get_features())
     _valid_features = tf.constant(_validation.get_features())
     # </editor-fold>
@@ -207,6 +216,18 @@ with graph.as_default():
     # </editor-fold>
 
     def model(data):
+        """
+        convolution = tf.nn.conv2d(data,
+                                   l1_w,
+                                   [1, 1, 1, 1],
+                                   padding="SAME",
+                                   use_cudnn_on_gpu=True,
+                                   name="Mul")
+
+        bias_addition_1 = tf.nn.bias_add(convolution, l1_b)
+
+        hidden = tf.nn.relu(bias_addition_1)
+        """
 
         # l1 160-160 3-16
         convolution = conv(data, l1_w, l1_b)
@@ -242,7 +263,7 @@ with graph.as_default():
         convolution_shape = convolution.get_shape()
 
         pre_final = tf.reshape(dropout,
-                               [convolution_shape[0], convolution_shape[3]])
+                               [-1, convolution_shape[3]])
 
         final = tf.matmul(pre_final, l7_w) + l7_b
 
@@ -257,15 +278,17 @@ with graph.as_default():
     # setting the optimizer to use Stochastic Gradient Descent, and try to minimize loss
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learn_rate).minimize(loss)
 
-    train_prediction = tf.nn.softmax(logits)
+    # getting the predictions
+    train_prediction = tf.nn.softmax(logits, name="final_result")
     test_prediction = tf.nn.softmax(model(_test_features))
     valid_prediction = tf.nn.softmax(model(_valid_features))
+
+    # saving the graph
+    saver = tf.train.Saver(reshape=True)
     # </editor-fold>
 
-sess = tf.Session("")
-sess.close()
-
-with tf.Session(graph=graph) as sess:
+# the session
+with tf.Session(graph=train_graph) as sess:
     tf.global_variables_initializer().run()
     max_validation = 0
     max_test = 0
@@ -275,22 +298,17 @@ with tf.Session(graph=graph) as sess:
         offset = (step * batch_size) % (_training.get_features_shape()[0] - batch_size)
         batch_data = _training.get_features()[offset:(offset + batch_size), :, :, :]
         batch_labels = _training.get_onehot_labels()[offset:(offset + batch_size), :]
-        feed_dict = {_features: batch_data, _labels: batch_labels}
 
+        feed_dict = {_features: batch_data,
+                     _labels: batch_labels}
+
+        print("got this far")
         _, l, predictions = sess.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
 
         batch_accuracy = accuracy(predictions, batch_labels)
         validation_accuracy = accuracy(valid_prediction.eval(), _validation.get_onehot_labels())
-        test_accuracy = accuracy(test_prediction.eval(), _testing.get_onehot_labels())
-        """
-        print("Step:", step)
-        print("Loss:", float(l))
-        print("Batch accuracy:", batch_accuracy, "%")
-        print("Validation accuracy:", validation_accuracy, "%")
-        print("Test accuracy:", test_accuracy)
-        print(" ")
-        """
+
         # <editor-fold desc="Printing information whenever there's an increase in the test/validation sets">
         if max_validation < validation_accuracy:
             max_validation = validation_accuracy
@@ -298,16 +316,6 @@ with tf.Session(graph=graph) as sess:
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
             print("Validation accuracy:", round(validation_accuracy, 3), "%")
-            print("Test data accuracy:", round(test_accuracy, 3), "%")
-            print(" ")
-
-        if max_test < test_accuracy:
-            max_test = test_accuracy
-            print("Step:", step)
-            print("Loss:", float(l))
-            print("Batch accuracy:", round(batch_accuracy, 3), "%")
-            print("Validation accuracy:", round(validation_accuracy, 3), "%")
-            print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
 
         if (step % 25) == 0:
@@ -315,14 +323,26 @@ with tf.Session(graph=graph) as sess:
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
             print("Validation accuracy:", round(validation_accuracy, 3), "%")
-            print("Test data accuracy:", round(test_accuracy, 3), "%")
             print(" ")
         # </editor-fold>
 
-    print("Number of steps: ", num_steps)
-    print(accuracy(test_prediction.eval(), _testing.get_onehot_labels()))
-    print(" -- END --  ")
-    # print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
+    print("...end of training")
+    print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
     print("")
 
-    sess.close()
+    # Saving the data.
+    save_folder = "models"
+    save_folder = os.path.join(os.getcwd(), "models")
+    save_folder = os.path.join(save_folder, model_name)
+
+    print("saving checkpoint")
+    saver.save(sess=sess, save_path=os.path.join(save_folder, model_name))
+    labels_save = model_name+".txt"
+    labels_save = os.path.join(save_folder, labels_save)
+
+    print("saving labels")
+
+    # write labels to a file
+    with open(labels_save, 'w') as the_file:
+        for item in _training.get_label_names():
+            the_file.write("%s\n" % item)

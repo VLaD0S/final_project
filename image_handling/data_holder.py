@@ -1,6 +1,6 @@
 
 """
-ToDo: Many tests for all exceptions. Dedicate specific day for it.
+Object to help organise the data in data_loader.py
 """
 
 
@@ -73,7 +73,6 @@ class Data:
         return True
 
     # Getters
-
     def check_initiate(self):
         return self.initiate
 

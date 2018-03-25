@@ -1,8 +1,8 @@
 """
-ToDo: Tests, maybe tweak arguments so they look nicer.
-ToDo: Add a function which specifies the image shape?
 ToDo: Add save directory
--- "it ain't broke...but lets fix it anyway " --
+Script responsible for converting the dataset into three distinct datasets:
+Training, Testing and Validation datasets.
+use --help to understand the file usage.
 """
 
 import os
@@ -10,10 +10,15 @@ import argparse
 import random
 from PIL import Image
 import numpy as np
-from data_management.data_holder import Data
+from image_handling.data_holder import Data
 
 
 def shuffler(data_list):
+    """
+    Shuffles the data from the order it was imported in.
+    :param data_list:
+    :return: data_list
+    """
     # creating a random list of numbers
     size = list(range(data_list.get_size()))
     random.shuffle(size)
@@ -39,6 +44,13 @@ def shuffler(data_list):
 
 
 def pack_and_save(data_root, data_list, directory):
+    """
+    Saves individual dataset
+    :param data_root: root of where the file is to be saved
+    :param data_list: the data to be saved
+    :param directory: directory
+    :return: False on fail.
+    """
     filename = data_root.lower() + ".npz"
     if data_list.double_check():
 
@@ -63,7 +75,7 @@ def pack_and_save(data_root, data_list, directory):
 def split_save(data_root, data_list, test_size, validation_size, directory):
     """
     Splits the original dataset into Training data, Test data and Validation data.
-    Saves the data at the end.
+    Calls pack_and_save at the end.
     :param, data_root: data root name, to be passed on.
     :param data_list: original dataset
     :param test_size: proportion of the data for the Test dataset
@@ -193,8 +205,9 @@ def main(data_root, test_size, validation_size, directory="data"):
             image_path = os.path.join(label_path, image)
             image_opener = Image.open(image_path)
 
-            # ToDo: parameter to resize data/ move data resize to model?
-            image_opener = image_opener.resize((160, 160), Image.ANTIALIAS)
+            # ToDo: parameter to resize
+            # uncomment to resize the image.
+            # image_opener = image_opener.resize((160, 160), Image.ANTIALIAS)
             image_data = np.asarray(image_opener, dtype="float32")
 
             # checks if data is initiated with a particular data size. Uses the first image to define
@@ -244,6 +257,7 @@ if __name__ == '__main__':
                 if validate_sets(args.test_size, args.valid_size):
 
                     main(args.data, args.test_size, args.valid_size, )
+                    print("...done")
 
                 else:
                     print("Failed to validate the sets")

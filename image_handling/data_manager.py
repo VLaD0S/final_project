@@ -1,6 +1,7 @@
 """
 Data management class.
-
+Contains data as numpya array. Data must fit in memory.
+Used for training.
 
 """
 
