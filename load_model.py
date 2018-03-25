@@ -9,7 +9,6 @@ ToDo: Add parameters: model input size:,
 ToDo: Clean up.
 """
 
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -33,6 +32,7 @@ def load_graph(model_file):
     graph_def = tf.GraphDef()
 
     with open(model_file, "rb") as f:
+        print(f)
         graph_def.ParseFromString(f.read())
     with tf_graph.as_default():
         tf.import_graph_def(graph_def)
@@ -56,11 +56,12 @@ def load_labels(label_file):
 
 
 # converts and re-size the input image to fit the input tensor
-def image_to_tensor(file_name, normalize=True):
+def image_to_tensor(file_name, size, normalize=True):
     """
     Expects a path to a jpeg file.
     :param file_name: file path for the image
-    :param normalize: Decides wether to normalize the image
+    :param size: image vertical/horizontal size
+    :param normalize: Decides whether to normalize the image
     :return: a normalized image, ready for inference.
     """
 
@@ -74,7 +75,7 @@ def image_to_tensor(file_name, normalize=True):
 
     # ensure image is of adequate input size.
     dimensions = tf.expand_dims(tf.cast(image_reader, tf.float32), 0)
-    image_resize = tf.image.resize_bilinear(dimensions, [299, 299])
+    image_resize = tf.image.resize_bilinear(dimensions, [size, size])
 
     # normalizing the image:
     if normalize:
@@ -87,6 +88,9 @@ def image_to_tensor(file_name, normalize=True):
 if __name__ == "__main__":
 
     graph_path = "retrained_inception/output_graph.pb"
+
+    graph_path = "models/cnn_model.pb"
+
     labels_path = "retrained_inception/output_labels.txt"
 
     parser = argparse.ArgumentParser()
@@ -96,11 +100,14 @@ if __name__ == "__main__":
     graph = load_graph(graph_path)
 
     # since the inception model will always be used in this way :
-    input_operation = graph.get_operation_by_name("import/Mul")
-    output_operation = graph.get_operation_by_name("import/final_result")
+    input_name = "import/" + "Mul"
+    output_name = "import/" + "Final"
+
+    input_operation = graph.get_operation_by_name(input_name)
+    output_operation = graph.get_operation_by_name(output_name)
 
     image_path = os.path.expanduser("~/Desktop/mole-test.jpg")
-    input_image = image_to_tensor(image_path, 299)
+    input_image = image_to_tensor(image_path, 160)
 
     with tf.Session(graph=graph) as sess:
         results = sess.run(output_operation.outputs[0],
@@ -113,3 +120,4 @@ if __name__ == "__main__":
 
     for i in range(len(labels)):
         print(str(labels[i])+": "+str(results[i]))
+
