@@ -162,7 +162,7 @@ def validate_sets(test_size, validation_size):
     return validation
 
 
-def main(data_root, test_size, validation_size, directory):
+def main(data_root, test_size, validation_size, directory="data"):
     """
     > Goes through the data folder, loading a Data() object with the image data and label.
     > Exports a file called <data_root>.npz containing all the data.
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     parser.add_argument("--valid_size", type=float,
                         help="Proportion of the data to be allocated for validation,"
                              "as float between 0 and 1.")
-    parser.add_argument("--dest_folder", help="Directory where models will be saved.")
+#    parser.add_argument("--dest_folder", help="Directory where models will be saved.")
 
     args = parser.parse_args()
 
@@ -243,10 +243,8 @@ if __name__ == '__main__':
 
                 if validate_sets(args.test_size, args.valid_size):
 
-                    if args.dest_folder:
-                        main(args.data, args.test_size, args.valid_size, args.dest_folder)
-                    else:
-                        print("no save directory specified")
+                    main(args.data, args.test_size, args.valid_size, )
+
                 else:
                     print("Failed to validate the sets")
             else:
