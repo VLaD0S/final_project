@@ -2,6 +2,9 @@ from data_management.data_unpacker import DataManager as Dm
 import tensorflow as tf
 import numpy as np
 import os
+from tensorflow.python.tools import freeze_graph as freezer
+from tensorflow.python.tools import optimize_for_inference as inferno
+
 
 # <editor-fold desc="Loading the data">
 data_root = "data"
@@ -10,7 +13,7 @@ validation_data_path = ""
 testing_data_path = ""
 
 data_files = os.listdir(data_root)
-print(data_files)
+print("Found datasets: " + str(data_files))
 for data_file in data_files:
     if "train" in data_file:
         training_data_path = os.path.join(data_root, data_file)
@@ -85,7 +88,7 @@ def decode_onehot(label):
 stddev_hyparam = 0.04
 learn_rate = 0.0045
 batch_size = 76
-num_epochs = 1000
+num_epochs = 5
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -97,9 +100,10 @@ data_depth = _training.get_fshape()[2]
 # </editor-fold>
 
 # Constructing the neural network model
+print(_training.get_fshape(), _training.get_lshape(True))
 
-graph = tf.Graph()
-with graph.as_default():
+train_graph = tf.Graph()
+with train_graph.as_default():
 
     # <editor-fold desc="Aiding parameter creation">
     """
@@ -110,16 +114,27 @@ with graph.as_default():
     _labels will be of the shape: [ batch size, h]
         - h represents the length of the one_hot list
     """
+
     _fbatch = [batch_size]
     _lbatch = [batch_size]
+
     _fbatch.extend(list(_training.get_fshape()))
     _lbatch.extend(list(_training.get_lshape(True)))
     # </editor-fold>
 
     # <editor-fold desc="Placeholders">
-    _features = tf.placeholder(_training.get_features_dtype(), shape=_fbatch)
-    _labels = tf.placeholder(_training.get_labels_dtype(True), shape=_lbatch)
+    #_features = tf.placeholder(_training.get_features_dtype(), shape=_fbatch, name="Mul")
+    #_labels = tf.placeholder(_training.get_labels_dtype(True), shape=_lbatch)
 
+    _features = tf.placeholder(_training.get_features_dtype(), name="Mul")
+    _labels = tf.placeholder(_training.get_labels_dtype(True), name="lab")
+
+    """
+    _features = tf.placeholder(_training.get_features_dtype(),
+                               shape=[_batch, _training.get_fshape()[0],_training.get_fshape()[1],_training.get_fshape()[2]])
+    _labels = tf.placeholder(_training.get_labels_dtype(True),
+                               shape=[_batch, _training.get_lshape(True)[0]])
+    """
     _test_features = tf.constant(_testing.get_features())
     _valid_features = tf.constant(_validation.get_features())
     # </editor-fold>
@@ -206,6 +221,16 @@ with graph.as_default():
     # </editor-fold>
 
     def model(data):
+        convolution = tf.nn.conv2d(data,
+                                   l1_w,
+                                   [1, 1, 1, 1],
+                                   padding="SAME",
+                                   use_cudnn_on_gpu=True,
+                                   name="Mul")
+
+        bias_addition_1 = tf.nn.bias_add(convolution, l1_b)
+
+        hidden = tf.nn.relu(bias_addition_1)
 
         # l1 160-160 3-16
         convolution = conv(data, l1_w, l1_b)
@@ -241,7 +266,7 @@ with graph.as_default():
         convolution_shape = convolution.get_shape()
 
         pre_final = tf.reshape(dropout,
-                               [convolution_shape[0], convolution_shape[3]])
+                               [-1, convolution_shape[3]])
 
         final = tf.matmul(pre_final, l7_w) + l7_b
 
@@ -256,15 +281,21 @@ with graph.as_default():
     # setting the optimizer to use Stochastic Gradient Descent, and try to minimize loss
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=learn_rate).minimize(loss)
 
-    train_prediction = tf.nn.softmax(logits)
+    train_prediction = tf.nn.softmax(logits, name="Final")
     test_prediction = tf.nn.softmax(model(_test_features))
     valid_prediction = tf.nn.softmax(model(_valid_features))
+
+    saver = tf.train.Saver(reshape=True)
     # </editor-fold>
+
 
 sess = tf.Session("")
 sess.close()
 
-with tf.Session(graph=graph) as sess:
+print(_training.get_label_names())
+
+
+with tf.Session(graph=train_graph) as sess:
     tf.global_variables_initializer().run()
     max_validation = 0
     max_test = 0
@@ -274,22 +305,18 @@ with tf.Session(graph=graph) as sess:
         offset = (step * batch_size) % (_training.get_features_shape()[0] - batch_size)
         batch_data = _training.get_features()[offset:(offset + batch_size), :, :, :]
         batch_labels = _training.get_onehot_labels()[offset:(offset + batch_size), :]
-        feed_dict = {_features: batch_data, _labels: batch_labels}
 
+        feed_dict = {_features: batch_data,
+                     _labels: batch_labels}
+
+        print("got this far")
         _, l, predictions = sess.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
 
         batch_accuracy = accuracy(predictions, batch_labels)
         validation_accuracy = accuracy(valid_prediction.eval(), _validation.get_onehot_labels())
         test_accuracy = accuracy(test_prediction.eval(), _testing.get_onehot_labels())
-        """
-        print("Step:", step)
-        print("Loss:", float(l))
-        print("Batch accuracy:", batch_accuracy, "%")
-        print("Validation accuracy:", validation_accuracy, "%")
-        print("Test accuracy:", test_accuracy)
-        print(" ")
-        """
+
         # <editor-fold desc="Printing information whenever there's an increase in the test/validation sets">
         if max_validation < validation_accuracy:
             max_validation = validation_accuracy
@@ -324,4 +351,10 @@ with tf.Session(graph=graph) as sess:
     # print("Test data accuracy: ", accuracy(test_prediction.eval(), _testing.get_onehot_labels()), "%")
     print("")
 
-    sess.close()
+
+    save_folder = "models"
+    save_place = os.path.join(os.getcwd(), "models")
+
+    print("saving checkpoint ")
+
+    saver.save(sess=sess, save_path=os.path.join(save_place, "test_model"))
