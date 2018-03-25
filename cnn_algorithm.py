@@ -1,13 +1,20 @@
 """
 Template model file
+IMPORTANT:
+If desired that the saved model is to work with the graph_freezer.py and the load_model.py, ensure:
+1. The input(feature) placeholder in the graph is to be named "Mul", and have a variable input shape
+2. The softmax operation is to be named "final_result".
+
+These are so because the inception model itself has these names for the input and output layers,
+therefore it saves extra variable parameters to be managed. Otherwise, if you wish to rename those
+layers, ensure you've changed them in graph_freezer.py and load_model.py.
+
 """
 
-import os
 import numpy as np
 from image_handling.data_manager import DataManager as Dm
 import tensorflow as tf
-import argparse
-
+import os
 
 # name of the model. To change.
 
