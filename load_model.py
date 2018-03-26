@@ -4,18 +4,15 @@ Link: https://github.com/tensorflow/tensorflow/blob/r1.6/tensorflow/examples/lab
 
 Thus the apache licence: http://www.apache.org/licenses/LICENSE-2.0 applies.
 
-ToDo: Adapt the file so that it takes in the directory where the graph and labels are found as parameter.
-ToDo: Add parameters: model input size:,
-ToDo: Clean up.
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from PIL import Image
+
 import argparse
-import sys, os
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -86,51 +83,38 @@ def image_to_tensor(file_name, size, normalize=True):
     return sess.run(image_resize)
 
 
-if __name__ == "__main__":
-
-    # resolution used to train the dataset.
-    image_size = 160
-
-    # normalize input before passing through graph
-    normal = False
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--graph_name", help="Name of the folder where the graph resides")
-    parser.add_argument("--image_path", help="The path of the image to be passed through the graph.")
-    args = parser.parse_args()
-
+def print_prediction(graph_nm, image_nm, res, normal=False):
+    """
+    :param graph_nm: graph name
+    :param image_nm: image name
+    :param res: resolution of the image
+    :param normal: whether the image should be normalized
+    :return: label and value of the highest prediction.
+    """
     # name of the graph to be used for inference
-    graph_name = args.graph_name
-    image_name = args.image_path
-
+    graph_name = graph_nm
+    image_name = image_nm
+    im_res = res
+    norm = normal
     """
     Since inception models are expected to have input of resolution 299x299,
     if an inception model is used, the input size is reshaped to to 299x299 instead.
     """
-    print("wtf...")
+
     if "inception" in graph_name:
-        print("WTF!?")
-        image_size = 299
-        normal = True
+        im_res = 299
+        norm = True
 
     # getting the image
-    image_path = os.path.expanduser(os.path.join(os.getcwd(), args.image_path))
-    print(image_path)
-    input_image = image_to_tensor(image_path, image_size, normalize=normal)
+    image_path = os.path.expanduser(os.path.join(os.getcwd(), image_name))
+    input_image = image_to_tensor(image_path, im_res, normalize=norm)
 
     # logic to get to the right path.
     models_dir_path = os.path.join(os.getcwd(), "models")
 
     # determining the path to the graph file and the label file
-    graph_path = os.path.join(models_dir_path, graph_name, graph_name+".pb")
-    labels_path = os.path.join(models_dir_path, graph_name, graph_name+".txt")
-    print(graph_path)
-    print(labels_path)
-    """ --To Delete
-    graph_path = "retrained_inception/output_graph.pb"
-    graph_path = "models/cnn_model.pb"
-    labels_path = "retrained_inception/output_labels.txt"
-    """
+    graph_path = os.path.join(models_dir_path, graph_name, graph_name + ".pb")
+    labels_path = os.path.join(models_dir_path, graph_name, graph_name + ".txt")
 
     # load graph inside a session
     graph = load_graph(graph_path)
@@ -138,18 +122,52 @@ if __name__ == "__main__":
     # since the inception model will always be used in this way :
     input_name = "import/" + "Mul"
     output_name = "import/" + "final_result"
-    input_operation = graph.get_operation_by_name(input_name)
-    output_operation = graph.get_operation_by_name(output_name)
+    input_op = graph.get_operation_by_name(input_name)
+    output_op = graph.get_operation_by_name(output_name)
 
-    with tf.Session(graph=graph) as sess:
-        results = sess.run(output_operation.outputs[0],
-                           {input_operation.outputs[0]: input_image})
+    # return graph, input_op, output_op, input_image, labels_path
+
+    sess = tf.Session(graph=graph)
+    results = sess.run(output_op.outputs[0],
+                {input_op.outputs[0]: input_image})
 
     # removes extra array
     results = np.squeeze(results)
 
     labels = load_labels(labels_path)
 
+    max_label = 0
+    max_name = ""
+
     for i in range(len(labels)):
-        print(str(labels[i])+": "+str(results[i]))
+
+        print(str(labels[i]) + ": " + str(results[i]))
+
+        if max_label < results[i]:
+            max_label = results[i]
+            max_name = labels[i]
+
+    return max_label, max_name
+
+
+if __name__ == "__main__":
+
+    # resolution used to train the dataset.
+    image_size = 160
+
+    # normalize input before passing through graph
+    to_normalize = False
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--graph_name", help="Name of the folder where the graph resides")
+    parser.add_argument("--image_path", help="The path of the image to be passed through the graph.")
+    args = parser.parse_args()
+    var = print_prediction(args.graph_name, args.image_path, image_size, to_normalize)
+    # print(var)
+
+
+
+
+
+
 
