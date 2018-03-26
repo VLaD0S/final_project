@@ -18,7 +18,7 @@ import os
 
 # name of the model. To change.
 
-model_name = "cnn_model_2"
+model_name = "cnn_model_3"
 
 # <editor-fold desc="Loading the data">
 """
@@ -108,7 +108,7 @@ def decode_onehot(label):
 stddev_hyparam = 0.04
 learn_rate = 0.0045
 batch_size = 76
-num_epochs = 2
+num_epochs = 500
 num_steps = calculate_steps(_training.get_features().shape[0], batch_size, num_epochs)
 
 # Data attributes:
@@ -309,7 +309,7 @@ with tf.Session(graph=train_graph) as sess:
         feed_dict = {_features: batch_data,
                      _labels: batch_labels}
 
-        print("got this far")
+        print(step, "/", num_steps)
         _, l, predictions = sess.run(
             [optimizer, loss, train_prediction], feed_dict=feed_dict)
 
@@ -319,6 +319,7 @@ with tf.Session(graph=train_graph) as sess:
         # <editor-fold desc="Printing information whenever there's an increase in the test/validation sets">
         if max_validation < validation_accuracy:
             max_validation = validation_accuracy
+            print(" ")
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
@@ -326,6 +327,7 @@ with tf.Session(graph=train_graph) as sess:
             print(" ")
 
         if (step % 25) == 0:
+            print(" ")
             print("Step:", step)
             print("Loss:", float(l))
             print("Batch accuracy:", round(batch_accuracy, 3), "%")
