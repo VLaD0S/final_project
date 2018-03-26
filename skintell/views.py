@@ -12,7 +12,8 @@ def index(request):
         instance = form.save()
         print(instance.id)
         print(instance.image)
-        #instance = predict(instance.image)
+        instance = predict(instance.image)
+
         print(instance.label)
         print(instance.id)
         instance.save()
