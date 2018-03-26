@@ -59,6 +59,7 @@ def load_labels(label_file):
 def image_to_tensor(file_name, size, normalize=True):
     """
     Expects a path to a jpeg file.
+    Converts it to the input tensor.
     :param file_name: file path for the image
     :param size: image vertical/horizontal size
     :param normalize: Decides whether to normalize the image
@@ -87,27 +88,58 @@ def image_to_tensor(file_name, size, normalize=True):
 
 if __name__ == "__main__":
 
-    graph_path = "retrained_inception/output_graph.pb"
+    # resolution used to train the dataset.
+    image_size = 160
 
-    graph_path = "models/cnn_model.pb"
-
-    labels_path = "retrained_inception/output_labels.txt"
+    # normalize input before passing through graph
+    normal = False
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image", help="image to be processed")
-    # parser.add_argument("--label")
+    parser.add_argument("--graph_name", help="Name of the folder where the graph resides")
+    parser.add_argument("--image_path", help="The path of the image to be passed through the graph.")
+    args = parser.parse_args()
 
+    # name of the graph to be used for inference
+    graph_name = args.graph_name
+    image_name = args.image_path
+
+    """
+    Since inception models are expected to have input of resolution 299x299,
+    if an inception model is used, the input size is reshaped to to 299x299 instead.
+    """
+    print("wtf...")
+    if "inception" in graph_name:
+        print("WTF!?")
+        image_size = 299
+        normal = True
+
+    # getting the image
+    image_path = os.path.expanduser(os.path.join(os.getcwd(), args.image_path))
+    print(image_path)
+    input_image = image_to_tensor(image_path, image_size, normalize=normal)
+
+    # logic to get to the right path.
+    models_dir_path = os.path.join(os.getcwd(), "models")
+
+    # determining the path to the graph file and the label file
+    graph_path = os.path.join(models_dir_path, graph_name, graph_name+".pb")
+    labels_path = os.path.join(models_dir_path, graph_name, graph_name+".txt")
+    print(graph_path)
+    print(labels_path)
+    """ --To Delete
+    graph_path = "retrained_inception/output_graph.pb"
+    graph_path = "models/cnn_model.pb"
+    labels_path = "retrained_inception/output_labels.txt"
+    """
+
+    # load graph inside a session
     graph = load_graph(graph_path)
 
     # since the inception model will always be used in this way :
     input_name = "import/" + "Mul"
     output_name = "import/" + "final_result"
-
     input_operation = graph.get_operation_by_name(input_name)
     output_operation = graph.get_operation_by_name(output_name)
-
-    image_path = os.path.expanduser("~/Desktop/mole-test.jpg")
-    input_image = image_to_tensor(image_path, 160)
 
     with tf.Session(graph=graph) as sess:
         results = sess.run(output_operation.outputs[0],
