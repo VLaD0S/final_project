@@ -5,6 +5,7 @@ File adapted after:
 Loads the graph inside the session
 """
 
+
 import tensorflow as tf
 import os
 import argparse
