@@ -1,3 +1,17 @@
-from django.shortcuts import render
+from django import forms
 
-# Create your views here.
+from .models import Image
+
+
+class PostForm(forms.ModelForm):
+    class Meta:
+        model = Image
+        fields = {
+            "image",
+        }
+
+        def save(self, *args, **kwargs):
+            instance = super(Image, self).save(commit=False)
+            return instance
+
+
