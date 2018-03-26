@@ -24,7 +24,7 @@ urlpatterns = [
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^', include('skin.urls')),
+    url(r'^', include('skintell.urls')),
 
 ]
 
