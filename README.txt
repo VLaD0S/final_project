@@ -1,22 +1,33 @@
-INSTRUCTIONS
+INSTRUCTIONS:
+
+ENVIRONMENT:
+All extermal python packages are inside the requirements.txt file.
+Create a python 3.5 virtual environment.
+Linux install instructions:
+
+	1. sudo apt-get install python3-pip
+	2. sudo pip3 install virtualenv
+	3. (in the source folder)  virtualenv env
+	4. source env/bin/activate
+	5. (once in the virtual environment) pip install -r requirements.txt
 
 In order for everything to function, ensure that the following project structure is present in the root folder:
 
 Python files:
 
-cnn_algoritm.py
-data_loader.py
-load_model.py
-graph_freezer.py
+- cnn_algoritm.py
+- data_loader.py
+- load_model.py
+- graph_freezer.py
 
 Directories:
 
-data
-models
-<name of folder containing data to be trained, in this case, Skin_Data_All>
+- data
+- models
+- <name of folder containing data to be trained, in this case, Skin_Data_All>
  
-p.s:
-The structure of the folder containing the data to be trained must be of the strucutre:
+- The structure of the folder containing the data to be trained must be of the strucutre:
+
 >dataset name (dir)
 	>label 1 (dir)
 			fil21.jpg
@@ -28,7 +39,10 @@ The structure of the folder containing the data to be trained must be of the str
 	...
 
 
---INFO--
+
+
+
+--Training and Model INFO--
 Data used to train these models:
 Skin_Data.tar.gz
 
