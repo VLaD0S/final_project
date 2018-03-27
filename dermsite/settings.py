@@ -122,11 +122,12 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
-PROJECT_NAME = 'dermsite/'
-
 # configuring the static file structure
+
 STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
-MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'media')
+MEDIA_ROOT = os.path.join(os.path.join(BASE_DIR, 'media'))
+
+
 
 
 

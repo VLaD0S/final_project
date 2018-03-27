@@ -145,8 +145,8 @@ def print_prediction(graph_nm, image_nm, res, normal=False):
 
         if max_label < results[i]:
             max_label = results[i]
-            max_name = labels[i]
-
+            max_name = str(labels[i])
+    print(max_label, max_name)
     return max_label, max_name
 
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_path", help="The path of the image to be passed through the graph.")
     args = parser.parse_args()
     var = print_prediction(args.graph_name, args.image_path, image_size, to_normalize)
-    # print(var)
+    print(var)
 
 
 

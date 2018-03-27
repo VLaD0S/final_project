@@ -5,9 +5,9 @@ from django.db import models
 
 # diagnosis class
 class Image(models.Model):
-    image = models.FileField()
+    image = models.FileField(null=True)
     top_prediction = models.FloatField(null=True)
-    label = models.CharField(max_length=256, default=None)
+    label = models.CharField(max_length=256, null=True)
 
     def save(self, *args, **kwargs):
         instance = super(Image, self).save(*args, **kwargs)
