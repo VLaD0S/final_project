@@ -4,11 +4,27 @@
 
 
 {% block content %}
-<h1>formidable</h1>
+<br>
+
 <form method="POST" action="" enctype="multipart/form-data"> {% csrf_token %}
-{{ form.as_ul }}
-<input type="submit" value="Create Post">
+    {{ form.as_p }}
+
+<input class="btn btn-primary" type="submit" value="Create Post">
 </form>
+<br>
 
 {% endblock content %}
+
+
+
+{% block result %}
+
+    {% if data_label %}
+    <div class="container">
+        <p> label: {{ data_label }} </p>
+        <p> probability: {{ data_pred }} </p>
+    </div>
+    {% endif %}
+
+{% endblock result %}
 

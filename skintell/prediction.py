@@ -15,4 +15,6 @@ def get_prediction(image, id):
         data.top_prediction = prediction
         data.save()
 
+    return data
+
 

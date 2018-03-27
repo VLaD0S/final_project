@@ -12,10 +12,15 @@ def index(request):
         instance = form.save(commit=False)
         instance.save()
 
-        predict(str(instance.image), int(instance.id))
-        context = {id: "id"}
-        messages.success(request, "Successfully Created")
-        return render(index)
+        data = predict(str(instance.image), int(instance.id))
+        label = data.label
+
+        prediction = data.top_prediction
+        context = {"data_label": label,
+                   "data_pred" : prediction,
+                   "form": form}
+        
+        return render(request, "post_form.html", context)
 
     context = {"form": form}
     return render(request, 'post_form.html', context)
